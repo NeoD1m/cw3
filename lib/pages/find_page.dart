@@ -1,12 +1,14 @@
 import 'dart:convert';
 
+import 'package:course_work_3/globals.dart';
 import 'package:course_work_3/pages/add_page.dart';
+import 'package:course_work_3/pages/login_page.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'dart:developer' as dev;
 import 'package:http/http.dart' as http;
-
+import 'package:course_work_3/globals.dart' as globals;
 import '../widgets/display_item.dart';
 import '../widgets/title.dart';
 
@@ -20,35 +22,45 @@ class FindPeoplePage extends StatefulWidget {
 class _FindPeoplePageState extends State<FindPeoplePage> {
   Future<List<DisplayItem>> getUser() async {
     final dio = Dio();
-    Response<dynamic> response = await dio.get('http://localhost:8080/api/userids');
+    Response<dynamic> response = await dio.get('http://neodim.fun:8080/api/userids');
     print(response.data);
     List<DisplayItem> finalList = [];
+
+
     for (var item in response.data as List){
+      //print(item);
+      final response = await dio.get('http://neodim.fun:8080/api/user/$item');
       print(item);
-      final response = await dio.get('http://localhost:8080/api/user/$item');
       finalList.add(DisplayItem.fromJson(jsonDecode(response.toString())));
     }
-    //List<int> list = jsonDecode(response.toString());
-    //print(list);
-    print("2");
-    //print(list[0]);
-    int a = 1;
-
-
-    // for (var item in list){
-    //   print("cycle ${item.runtimeType}");
-    //   DisplayItem di = DisplayItem.fromJson(jsonDecode(item));
-    //   print(di.name);
-    // }
-    print("3");
     return finalList;
   }
 
   @override
   Widget build(BuildContext context) {
+    void reload(){
+      setState(() {
+
+      });
+    }
+
     return Scaffold(
       body: Stack(
         children: [
+          Padding(
+            padding: const EdgeInsets.all(10.0),
+            child: Align(
+              alignment: Alignment.topRight,
+              child: (loggedUsername == "") ? TextButton(
+                onPressed: (){
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => LoginPage(reload: reload)));
+                },
+                child: Text("Login",style: TextStyle(fontSize: 25) ),
+              ) : Text(loggedUsername,style: TextStyle(fontSize: 25)),
+            ),
+          ),
           Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -115,10 +127,11 @@ class _FindPeoplePageState extends State<FindPeoplePage> {
                     context,
                     MaterialPageRoute(builder: (context) => AddListingPage()),
                   ),
-                  child: const Padding(
+                  child: Padding(
                     padding: EdgeInsets.all(10),
                     child: Text(
-                      "ADD",
+                      (globals.loggedUsername == "") ?
+                      "ADD" : "EDIT",
                       style: TextStyle(fontSize: 25),
                     ),
                   ),

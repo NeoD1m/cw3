@@ -8,6 +8,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:developer' as dev;
+import 'package:course_work_3/globals.dart' as globals;
 
 import '../widgets/title.dart';
 
@@ -26,6 +27,7 @@ class _AddListingPageState extends State<AddListingPage> {
   TextEditingController wageController = TextEditingController();
   TextEditingController aboutController = TextEditingController();
   TextEditingController emailController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
 
   void _setImage(Uint8List image) {
     setState(() {
@@ -38,7 +40,8 @@ class _AddListingPageState extends State<AddListingPage> {
       required String wage,
       required String about,
       required String email,
-      required Uint8List userimage}) async {
+      required Uint8List userimage,
+      required String password}) async {
     final dio = Dio();
     //
     String s = new String.fromCharCodes(userimage);
@@ -52,23 +55,44 @@ class _AddListingPageState extends State<AddListingPage> {
       "wage": int.parse(wage),
       "about": about,
       "email": email,
-     //MultipartFile.fromBytes(userimage).finalize()
+      "password": password
+      //MultipartFile.fromBytes(userimage).finalize()
     };
     print(params);
     try {
-      await dio.post('http://localhost:8080/api/user', queryParameters: params, data: { "userimage": base64Encode(userimage) });
-    } catch (e){
+      await dio.post('http://neodim.fun:8080/api/user',
+          queryParameters: params,
+          data: {"userimage": base64Encode(userimage)});
+    } catch (e) {
       print(e);
     }
   }
-
-  // options: Options(
-  // contentType: "application/json",
-  // headers: {
-  // 'Access-Control-Allow-Headers': 'origin, content-type, accept',
-  // HttpHeaders.contentTypeHeader: "application/json",
-  // 'Access-Control-Allow-Origin': '*'
-  // })
+  void updateUser(
+      {required String username,
+        required String wage,
+        required String about,
+        required String email,
+        required Uint8List userimage,
+        required String password}) async {
+    final dio = Dio();
+    final params = {
+      "oldname": globals.loggedUsername,
+      "username": username,
+      "wage": int.parse(wage),
+      "about": about,
+      "email": email,
+      "password": password,
+    };
+    print(params);
+    try {
+      Response response = await dio.put('http://neodim.fun:8080/api/user',
+          queryParameters: params,
+          data: {"userimage": base64Encode(userimage)});
+      print(response.data);
+    } catch (e) {
+      print(e);
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -80,7 +104,10 @@ class _AddListingPageState extends State<AddListingPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text("Create a listing:",
+                  Text(
+                      (globals.loggedUsername == "")
+                          ? "Create a listing:"
+                          : "Edit you listing:",
                       style: TextStyle(fontSize: 30)),
                   const SizedBox(height: 24),
                   SizedBox(
@@ -118,6 +145,14 @@ class _AddListingPageState extends State<AddListingPage> {
                     ),
                   ),
                   const SizedBox(height: 24),
+                  TextField(
+                    controller: passwordController,
+                    decoration: const InputDecoration(
+                      border: OutlineInputBorder(),
+                      hintText: 'Enter a password',
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                   // TextField(
                   //   controller: emailController,
                   //   decoration: const InputDecoration(
@@ -138,16 +173,53 @@ class _AddListingPageState extends State<AddListingPage> {
                   const SizedBox(height: 24),
                   ElevatedButton(
                       onPressed: () {
-                        // TODO add check that all fields not empty
-                        setUser(
-                            username: usernameController.value.text,
-                            wage: wageController.value.text,
-                            about: aboutController.value.text,
-                            email: emailController.value.text,
-                            userimage: widget._image!);
+                        if (usernameController.value.text.isNotEmpty &&
+                            wageController.value.text.isNotEmpty &&
+                            aboutController.value.text.isNotEmpty &&
+                            emailController.value.text.isNotEmpty &&
+                            passwordController.value.text.isNotEmpty &&
+                            widget._image != null){
+                          if (globals.loggedUsername == "") {
+                            setUser(
+                                username: usernameController.value.text,
+                                wage: wageController.value.text,
+                                about: aboutController.value.text,
+                                email: emailController.value.text,
+                                userimage: widget._image!,
+                                password: passwordController.value.text);
+                          } else {
+                            updateUser(
+                                username: usernameController.value.text,
+                                wage: wageController.value.text,
+                                about: aboutController.value.text,
+                                email: emailController.value.text,
+                                userimage: widget._image!,
+                                password: passwordController.value.text);
+                          }
 
-                        dev.log("publish requested");
-                        Navigator.of(context).pop();
+                          dev.log("publish requested");
+                        Navigator.of(context).pop();}
+                        else {
+                          showDialog(context: context,  builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: const Text('Error!'),
+                              content: const Text(
+                                'Fill all of the fields!',
+                              ),
+                              actions: <Widget>[
+                                TextButton(
+                                  style: TextButton.styleFrom(
+                                    textStyle: Theme.of(context).textTheme.labelLarge,
+                                  ),
+                                  child: const Text('Ok'),
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                ),
+                              ],
+                            );
+                          },);
+                        }
                       },
                       style: ButtonStyle(
                           backgroundColor: MaterialStateProperty.resolveWith(
@@ -160,7 +232,9 @@ class _AddListingPageState extends State<AddListingPage> {
                       child: Padding(
                           padding: const EdgeInsets.all(24),
                           child: Text(
-                            "Publish listing",
+                            (globals.loggedUsername == "")
+                                ? "Publish listing"
+                                : "Publish changes",
                             style: TextStyle(
                                 color: Theme.of(context).canvasColor,
                                 fontSize: 24),
